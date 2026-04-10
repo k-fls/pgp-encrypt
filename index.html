@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PGP Encrypt</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 12px 20px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e94560;
+    }
+
+    #encrypt-btn {
+      background: #e94560;
+      color: #fff;
+      border: none;
+      padding: 8px 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #encrypt-btn:hover { background: #c73650; }
+    #encrypt-btn:disabled { background: #555; cursor: not-allowed; }
+
+    .container {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .left-pane {
+      width: 40%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #0f3460;
+    }
+
+    .right-pane {
+      width: 60%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane-header {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    textarea {
+      flex: 1;
+      background: #0a0a1a;
+      color: #e0e0e0;
+      border: none;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      resize: none;
+      outline: none;
+    }
+
+    textarea::placeholder { color: #444; }
+
+    .right-pane .top {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    .right-pane .bottom {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #output {
+      color: #4ecca3;
+      cursor: text;
+    }
+
+    #error-msg {
+      padding: 8px 16px;
+      background: #4a1025;
+      color: #e94560;
+      font-size: 13px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>PGP Encrypt</h1>
+  <button id="encrypt-btn">Encrypt</button>
+</header>
+
+<div id="error-msg"></div>
+
+<div class="container">
+  <div class="left-pane">
+    <div class="pane-header">Public Key</div>
+    <textarea id="pubkey" placeholder="Paste PGP public key here..."></textarea>
+  </div>
+  <div class="right-pane">
+    <div class="top">
+      <div class="pane-header">Plaintext</div>
+      <textarea id="plaintext" placeholder="Enter text to encrypt..."></textarea>
+    </div>
+    <div class="bottom">
+      <div class="pane-header">Encrypted Output</div>
+      <textarea id="output" readonly placeholder="Encrypted message will appear here..."></textarea>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/openpgp@5.11.2/dist/openpgp.min.js"></script>
+<script>
+  const btn = document.getElementById('encrypt-btn');
+  const errorEl = document.getElementById('error-msg');
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+  }
+
+  function clearError() {
+    errorEl.style.display = 'none';
+  }
+
+  btn.addEventListener('click', async () => {
+    clearError();
+    const pubkeyArmored = document.getElementById('pubkey').value.trim();
+    const plaintext = document.getElementById('plaintext').value;
+
+    if (!pubkeyArmored) { showError('Please paste a public key.'); return; }
+    if (!plaintext) { showError('Please enter text to encrypt.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Encrypting...';
+
+    try {
+      const publicKey = await openpgp.readKey({ armoredKey: pubkeyArmored });
+      const encrypted = await openpgp.encrypt({
+        message: await openpgp.createMessage({ text: plaintext }),
+        encryptionKeys: publicKey,
+      });
+      document.getElementById('output').value = encrypted;
+    } catch (e) {
+      showError('Encryption failed: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Encrypt';
+    }
+  });
+</script>
+
+</body>
+</html>
