@@ -31,19 +31,33 @@
       color: #e94560;
     }
 
-    #encrypt-btn {
+    .action-bar {
+      padding: 8px 16px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      justify-content: center;
+    }
+
+    .action-bar button, #copy-btn {
       background: #e94560;
       color: #fff;
       border: none;
-      padding: 8px 24px;
+      padding: 6px 20px;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
       font-weight: 600;
     }
 
-    #encrypt-btn:hover { background: #c73650; }
-    #encrypt-btn:disabled { background: #555; cursor: not-allowed; }
+    .action-bar button:hover, #copy-btn:hover { background: #c73650; }
+    .action-bar button:disabled { background: #555; cursor: not-allowed; }
+
+    #copy-btn {
+      margin-left: 12px;
+      padding: 2px 10px;
+      font-size: 11px;
+    }
 
     .container {
       display: flex;
@@ -120,7 +134,6 @@
 
 <header>
   <h1>PGP Encrypt</h1>
-  <button id="encrypt-btn">Encrypt</button>
 </header>
 
 <div id="error-msg"></div>
@@ -135,8 +148,11 @@
       <div class="pane-header">Plaintext</div>
       <textarea id="plaintext" placeholder="Enter text to encrypt..."></textarea>
     </div>
+    <div class="action-bar">
+      <button id="encrypt-btn">Encrypt</button>
+    </div>
     <div class="bottom">
-      <div class="pane-header">Encrypted Output</div>
+      <div class="pane-header">Encrypted Output <button id="copy-btn">Copy</button></div>
       <textarea id="output" readonly placeholder="Encrypted message will appear here..."></textarea>
     </div>
   </div>
@@ -155,6 +171,16 @@
   function clearError() {
     errorEl.style.display = 'none';
   }
+
+  document.getElementById('copy-btn').addEventListener('click', () => {
+    const output = document.getElementById('output');
+    if (!output.value) return;
+    navigator.clipboard.writeText(output.value).then(() => {
+      const copyBtn = document.getElementById('copy-btn');
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+    });
+  });
 
   btn.addEventListener('click', async () => {
     clearError();
