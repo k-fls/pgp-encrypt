@@ -172,17 +172,32 @@
     errorEl.style.display = 'none';
   }
 
-  // Load PGP key from URL hash parameter (?key=base64encoded)
-  (function loadKeyFromURL() {
+  // Load PGP key from URL: ?key=<base64url-binary-key>&hash=<sha256-hex>
+  (async function loadKeyFromURL() {
     const params = new URLSearchParams(window.location.search);
     const keyParam = params.get('key');
-    if (keyParam) {
-      try {
-        const decoded = atob(keyParam);
-        document.getElementById('pubkey').value = decoded;
-      } catch (e) {
-        showError('Invalid key in URL: could not decode.');
+    if (!keyParam) return;
+
+    try {
+      // Decode base64url to binary
+      const b64 = keyParam.replace(/-/g, '+').replace(/_/g, '/');
+      const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+      // Verify integrity hash if provided
+      const hashParam = params.get('hash');
+      if (hashParam) {
+        const digest = await crypto.subtle.digest('SHA-256', binary);
+        const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+        if (hex !== hashParam.toLowerCase()) {
+          showError('Key integrity check failed: hash mismatch.');
+          return;
+        }
       }
+
+      const key = await openpgp.readKey({ binaryKey: binary });
+      document.getElementById('pubkey').value = key.armor();
+    } catch (e) {
+      showError('Invalid key in URL: ' + e.message);
     }
   })();
 
