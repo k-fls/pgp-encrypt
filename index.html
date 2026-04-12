@@ -172,6 +172,20 @@
     errorEl.style.display = 'none';
   }
 
+  // Load PGP key from URL hash parameter (?key=base64encoded)
+  (function loadKeyFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const keyParam = params.get('key');
+    if (keyParam) {
+      try {
+        const decoded = atob(keyParam);
+        document.getElementById('pubkey').value = decoded;
+      } catch (e) {
+        showError('Invalid key in URL: could not decode.');
+      }
+    }
+  })();
+
   document.getElementById('copy-btn').addEventListener('click', () => {
     const output = document.getElementById('output');
     if (!output.value) return;
