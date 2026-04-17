@@ -224,9 +224,28 @@
 
     try {
       const publicKey = await openpgp.readKey({ armoredKey: pubkeyArmored });
+
+      // Guard against clock skew between the key issuer and this browser:
+      // openpgp rejects signatures created "in the future", so advance the
+      // reference date past the latest signature in the key if needed.
+      let latest = publicKey.keyPacket.created.getTime();
+      for (const u of publicKey.users ?? []) {
+        for (const sig of u.selfCertifications ?? []) {
+          latest = Math.max(latest, new Date(sig.created).getTime());
+        }
+      }
+      for (const sub of publicKey.subkeys ?? []) {
+        latest = Math.max(latest, sub.keyPacket.created.getTime());
+        for (const sig of sub.bindingSignatures ?? []) {
+          latest = Math.max(latest, new Date(sig.created).getTime());
+        }
+      }
+      const date = new Date(Math.max(Date.now(), latest + 1000));
+
       const encrypted = await openpgp.encrypt({
         message: await openpgp.createMessage({ text: plaintext }),
         encryptionKeys: publicKey,
+        date,
       });
       document.getElementById('output').value = encrypted;
     } catch (e) {
